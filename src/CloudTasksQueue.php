@@ -152,6 +152,11 @@ class CloudTasksQueue extends LaravelQueue implements QueueContract
         // value and need to manually set and update the number of times a task has been attempted.
         $payload = $this->withAttempts($payload);
 
+        // Laravel jobs contain a queue property in the payload command. For some reason this property
+        // is present on jobs, but not on listeners and event broadcast jobs. Since we are using the queue
+        // property when handing this task, we need to ensure this property is set for correct handling.
+        $payload = $this->withCommandQueue($payload, $queue);
+
         $httpRequest->setBody(json_encode($payload));
 
         $task = $this->createTask();
@@ -221,6 +226,14 @@ class CloudTasksQueue extends LaravelQueue implements QueueContract
             $payload['internal']['attempts'] = 0;
         }
 
+        return $payload;
+    }
+
+    private function withCommandQueue(array $payload, string $queue): array
+    {
+        $command = unserialize($payload['data']['command']);
+        $command->queue = $command->queue ?: $queue;
+        $payload['data']['command'] = serialize($command);
         return $payload;
     }
 
