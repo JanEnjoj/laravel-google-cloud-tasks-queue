@@ -74,6 +74,13 @@ class CloudTasksQueue extends LaravelQueue implements QueueContract
         }
 
         $this->client->createTask($queueName, $task);
+
+        info('CloudTasksQueue: Pushed to queue', [
+            'queue' => $queue,
+            'payload' => $payload,
+            'delay' => $delay,
+            'attempts' => $attempts,
+        ]);
     }
 
     public function pop($queue = null)
