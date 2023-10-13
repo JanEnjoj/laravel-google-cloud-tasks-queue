@@ -11,6 +11,7 @@ use Google\Protobuf\Timestamp;
 use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\Queue as LaravelQueue;
 use Illuminate\Support\InteractsWithTime;
+use Throwable;
 
 class CloudTasksQueue extends LaravelQueue implements QueueContract
 {
@@ -73,14 +74,22 @@ class CloudTasksQueue extends LaravelQueue implements QueueContract
             $task->setScheduleTime(new Timestamp(['seconds' => $availableAt]));
         }
 
-        $this->client->createTask($queueName, $task);
+        $cloudTask = $this->client->createTask($queueName, $task);
 
-        info('CloudTasksQueue: Pushed to queue', [
-            'queue' => $queue,
-            'payload' => $payload,
-            'delay' => $delay,
-            'attempts' => $attempts,
-        ]);
+        try {
+            info('CloudTasksQueue: Pushed to queue', [
+                'task' => $cloudTask,
+                'taskName' => $cloudTask != null ? $cloudTask->getName() : null,
+                'queue' => $queue,
+                'payload' => $payload,
+                'delay' => $delay,
+                'attempts' => $attempts,
+            ]);
+        } catch (Throwable $e) {
+            info('CloudTaskQueue: Failed to log', [
+                'exception' => $e,
+            ]);
+        }
     }
 
     public function pop($queue = null)
